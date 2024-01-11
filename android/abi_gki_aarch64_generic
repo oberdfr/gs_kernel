@@ -876,6 +876,7 @@
   find_vm_area
   find_vpid
   finish_wait
+  finish_swait
   firmware_request_nowarn
   flush_dcache_page
   flush_delayed_work
@@ -1667,6 +1668,8 @@
   preempt_schedule
   preempt_schedule_notrace
   prepare_to_wait
+  prepare_to_swait_exclusive
+  swake_up_one
   prepare_to_wait_event
   print_hex_dump
   printk
