@@ -143,7 +143,7 @@
 
 			m_buck2_reg: BUCK2M {
 				regulator-name = "S2MPG10_BUCK2";
-				regulator-min-microvolt = <450000>;
+				regulator-min-microvolt = <150000>;
 				regulator-max-microvolt = <1300000>;
 				regulator-always-on;
 				regulator-initial-mode = <SEC_OPMODE_SUSPEND>;
@@ -158,7 +158,7 @@
 
 			m_buck3_reg: BUCK3M {
 				regulator-name = "S2MPG10_BUCK3";
-				regulator-min-microvolt = <450000>;
+				regulator-min-microvolt = <150000>;
 				regulator-max-microvolt = <1300000>;
 				regulator-always-on;
 				regulator-initial-mode = <SEC_OPMODE_SUSPEND>;
@@ -173,7 +173,7 @@
 
 			m_buck4_reg: BUCK4M {
 				regulator-name = "S2MPG10_BUCK4";
-				regulator-min-microvolt = <450000>;
+				regulator-min-microvolt = <150000>;
 				regulator-max-microvolt = <1300000>;
 				regulator-always-on;
 				regulator-initial-mode = <SEC_OPMODE_SUSPEND>;

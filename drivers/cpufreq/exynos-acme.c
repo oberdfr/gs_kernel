@@ -1009,6 +1009,9 @@ init_fail:
 /*********************************************************************
  *                  INITIALIZE EXYNOS CPUFREQ DRIVER                 *
  *********************************************************************/
+
+// static int cpu_undervolt = 600000;
+
 static void print_domain_info(struct exynos_cpufreq_domain *domain)
 {
 	int i;
@@ -1247,6 +1250,13 @@ static int init_domain(struct exynos_cpufreq_domain *domain,
 		domain->max_freq_qos = domain->max_freq;
 	}
 
+	/* Undervolt */
+	for (index = 0; index < orig_table_size; index++) {
+		// Undervolt with uV value
+		volt_table[index] = volt_table[index] - (volt_table[index] * 20 / 100);
+		pr_info("AGGIORNATA LA volt_table[%d]=%d\n", index, volt_table[index]);
+	} 
+
 	resume_freq = min(resume_freq, domain->max_freq);
 
 	/*
@@ -1328,6 +1338,7 @@ static int init_domain(struct exynos_cpufreq_domain *domain,
 			dev_pm_opp_add(get_cpu_device(cpu),
 				       freq_table[index] * 1000,
 				       volt_table[index]);
+		pr_info("VOLTA TABLA ULTIMATA volt_table[%d]=%d\n", index, volt_table[index]);
 	}
 
 	kfree(freq_table);
