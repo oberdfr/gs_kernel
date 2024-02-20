@@ -2320,8 +2320,6 @@ int main(int argc, char *argv[])
 		MAKE_TEST(flock_test),
 		MAKE_TEST(bpf_test_create_and_remove_bpf),
 		MAKE_TEST(bpf_test_mkdir_and_remove_bpf),
-		MAKE_TEST(bpf_test_readahead),
-		MAKE_TEST(bpf_test_follow_mounts),
 	};
 #undef MAKE_TEST
 

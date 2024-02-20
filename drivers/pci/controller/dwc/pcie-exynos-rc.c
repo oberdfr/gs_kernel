@@ -2095,6 +2095,14 @@ static int exynos_pcie_rc_get_resource(struct platform_device *pdev,
 
 		return ret;
 	}
+
+	temp_rsc = platform_get_resource_byname(pdev, IORESOURCE_MEM, "udbg");
+	exynos_pcie->udbg_base = devm_ioremap_resource(&pdev->dev, temp_rsc);
+	if (temp_rsc && IS_ERR(exynos_pcie->udbg_base)) {
+		ret = PTR_ERR(exynos_pcie->udbg_base);
+		return ret;
+	}
+
 	temp_rsc = platform_get_resource_byname(pdev, IORESOURCE_MEM, "phy");
 	exynos_pcie->phy_base_physical_addr = temp_rsc->start;
 	exynos_pcie->phy_base = devm_ioremap_resource(&pdev->dev, temp_rsc);
@@ -2380,6 +2388,24 @@ void exynos_pcie_rc_register_dump(int ch_num)
 				i, val_0, val_4, val_8, val_c);
 	}
 	pr_err("\n");
+
+	/* ---------------------- */
+	/* UDBG: 0xA000 ~ 0xAFFF */
+	/* ---------------------- */
+	if (!IS_ERR(exynos_pcie->udbg_base)) {
+		exynos_udbg_write(exynos_pcie, 0x13, 0xC604); /* change udbg read mode */
+		pr_err("[Print UDBG region]\n");
+		pr_err("offset: 0x0     0x4     0x8     0xC\n");
+		for (i = 0xA000; i < 0xB000; i += 0x10) {
+			pr_err("UDBG 0x%04x:    0x%08x    0x%08x    0x%08x    0x%08x\n",
+					i,
+					exynos_udbg_read(exynos_pcie, i + 0x0),
+					exynos_udbg_read(exynos_pcie, i + 0x4),
+					exynos_udbg_read(exynos_pcie, i + 0x8),
+					exynos_udbg_read(exynos_pcie, i + 0xC));
+		}
+		pr_err("\n");
+	}
 	pr_err("%s: ---\n", __func__);
 
 }
@@ -2636,8 +2662,6 @@ void exynos_pcie_rc_resumed_phydown(struct pcie_port *pp)
 
 	exynos_pcie_rc_enable_interrupts(pp, 0);
 	exynos_pcie_phy_isolation(exynos_pcie, PCIE_PHY_BYPASS);
-
-	exynos_pcie_rc_assert_phy_reset(pp);
 
 	if (exynos_pcie->phy_ops.phy_all_pwrdn)
 		exynos_pcie->phy_ops.phy_all_pwrdn(exynos_pcie, exynos_pcie->ch_num);

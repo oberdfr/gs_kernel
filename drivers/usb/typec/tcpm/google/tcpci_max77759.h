@@ -171,9 +171,6 @@ struct max77759_plat {
 	/* AICL status from hardware */
 	bool aicl_active;
 
-	/* Hold while calling start_toggle and in probe to guard NULL chip->tcpci */
-	struct mutex toggle_lock;
-
 	/* EXT_BST_EN exposed as GPIO */
 #ifdef CONFIG_GPIOLIB
 	struct gpio_chip gpio;
@@ -235,11 +232,11 @@ void register_data_active_callback(void (*callback)(void *data_active_payload,
 				   void *data);
 void register_orientation_callback(void (*callback)(void *orientation_payload), void *data);
 
-/* AICL_OK is tracked with COMPLIANCE_WARNING_OTHER */
 #define COMPLIANCE_WARNING_OTHER 0
 #define COMPLIANCE_WARNING_DEBUG_ACCESSORY 1
 #define COMPLIANCE_WARNING_BC12 2
 #define COMPLIANCE_WARNING_MISSING_RP 3
+#define COMPLIANCE_WARNING_INPUT_POWER_LIMITED 4
 
 struct max77759_compliance_warnings {
 	struct max77759_plat *chip;
@@ -247,6 +244,7 @@ struct max77759_compliance_warnings {
 	bool debug_accessory;
 	bool bc12;
 	bool missing_rp;
+	bool input_power_limited;
 };
 
 ssize_t compliance_warnings_to_buffer(struct max77759_compliance_warnings *compliance_warnings,

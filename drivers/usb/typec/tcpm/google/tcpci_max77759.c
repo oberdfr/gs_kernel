@@ -778,6 +778,8 @@ ssize_t compliance_warnings_to_buffer(struct max77759_compliance_warnings *compl
 		strncat(buf, "bc12, ", strlen("bc12, "));
 	if (compliance_warnings->missing_rp)
 		strncat(buf, "missing_rp, ", strlen("missing_rp, "));
+	if (compliance_warnings->input_power_limited)
+		strncat(buf, "input_power_limited, ", strlen("input_power_limited, "));
 	strncat(buf, "]", strlen("]"));
 	return strnlen(buf, PAGE_SIZE);
 }
@@ -802,6 +804,11 @@ void update_compliance_warnings(struct max77759_plat *chip, int warning, bool va
 	case COMPLIANCE_WARNING_MISSING_RP:
 		compliance_warnings_changed = (chip->compliance_warnings->missing_rp != value);
 		chip->compliance_warnings->missing_rp = value;
+		break;
+	case COMPLIANCE_WARNING_INPUT_POWER_LIMITED:
+		compliance_warnings_changed =
+				(chip->compliance_warnings->input_power_limited != value);
+		chip->compliance_warnings->input_power_limited = value;
 		break;
 	}
 
@@ -1079,9 +1086,9 @@ void disconnect_missing_rp_partner(struct max77759_plat *chip)
 	update_compliance_warnings(chip, COMPLIANCE_WARNING_MISSING_RP, false);
 	/*
 	 * clear AICL warning for missing rp as detach will not be signalled for
-	 * MISSING_RP + OTHER(AICL)
+	 * MISSING_RP + INPUT_POWER_LIMITED(AICL)
 	 */
-	update_compliance_warnings(chip, COMPLIANCE_WARNING_OTHER, false);
+	update_compliance_warnings(chip, COMPLIANCE_WARNING_INPUT_POWER_LIMITED, false);
 	chip->vbus_mv = 0;
 	/* val.intval does not matter */
 	ret = power_supply_set_property(chip->usb_psy, POWER_SUPPLY_PROP_VOLTAGE_MAX, &val);
@@ -1873,9 +1880,10 @@ static int max77759_start_toggling(struct tcpci *tcpci,
 		reg |= (TCPC_ROLE_CTRL_CC_RP << TCPC_ROLE_CTRL_CC1_SHIFT) |
 			(TCPC_ROLE_CTRL_CC_RP << TCPC_ROLE_CTRL_CC2_SHIFT);
 
-	mutex_lock(&chip->toggle_lock);
+	/* Wait for tcpci_register_port to finish. */
+	while (READ_ONCE(chip->tcpci) == NULL)
+		cpu_relax();
 	max77759_init_regs(chip->tcpci->regmap, chip->log);
-	mutex_unlock(&chip->toggle_lock);
 
 	chip->role_ctrl_cache = reg;
 	mutex_lock(&chip->rc_lock);
@@ -2150,13 +2158,13 @@ static int max77759_usb_set_role(struct usb_role_switch *sw, enum usb_role role)
 		bc12_enable(chip->bc12, true);
 
 	/*
-	 * Clear COMPLIANCE_WARNING_OTHER which tracks AICL_ACTIVE only upon disconnect.
-	 * This prevents the incommpatible charging notification to not change status
+	 * Clear COMPLIANCE_WARNING_INPUT_POWER_LIMITED which tracks AICL_ACTIVE only upon
+	 * disconnect. This prevents the incommpatible charging notification to not change status
 	 * during the charging session. AICL active is system/battery load dependent and
 	 * hence can change status during a charge session.
 	 */
 	if (!attached) {
-		update_compliance_warnings(chip, COMPLIANCE_WARNING_OTHER, false);
+		update_compliance_warnings(chip, COMPLIANCE_WARNING_INPUT_POWER_LIMITED, false);
 		/* Clear BC12 as fallback when hardware does not clear it on disconnect. */
 		update_compliance_warnings(chip, COMPLIANCE_WARNING_BC12, false);
 	}
@@ -2656,13 +2664,13 @@ static void aicl_check_alarm_work_item(struct kthread_work *work)
 						  aicl_check_alarm_work);
 
 	/*
-	 * Set here and clear COMPLIANCE_WARNING_OTHER which tracks AICL_ACTIVE only upon
-	 * disconnect. This prevents the incommpatible charging notification to not change status
-	 * during the charging session. AICL active is system/battery load dependent and hence
-	 * can change status during a charge session.
+	 * Set here and clear COMPLIANCE_WARNING_INPUT_POWER_LIMITED which tracks AICL_ACTIVE only
+	 * upon disconnect. This prevents the incommpatible charging notification to not change
+	 * status during the charging session. AICL active is system/battery load dependent and
+	 * hence can change status during a charge session.
 	 */
 	if (is_aicl_limited(chip))
-		update_compliance_warnings(chip, COMPLIANCE_WARNING_OTHER, true);
+		update_compliance_warnings(chip, COMPLIANCE_WARNING_INPUT_POWER_LIMITED, true);
 }
 
 static enum alarmtimer_restart aicl_check_alarm_handler(struct alarm *alarm, ktime_t time)
@@ -2778,7 +2786,6 @@ static int max77759_probe(struct i2c_client *client,
 	mutex_init(&chip->data_path_lock);
 	mutex_init(&chip->rc_lock);
 	mutex_init(&chip->irq_status_lock);
-	mutex_init(&chip->toggle_lock);
 	spin_lock_init(&g_caps_lock);
 	chip->first_toggle = true;
 	chip->first_rp_missing_timeout = true;
@@ -2964,9 +2971,7 @@ static int max77759_probe(struct i2c_client *client,
 	}
 	gvotable_set_vote2str(chip->aicl_active_el, gvotable_v2s_int);
 
-	mutex_lock(&chip->toggle_lock);
 	chip->tcpci = tcpci_register_port(chip->dev, &chip->data);
-	mutex_unlock(&chip->toggle_lock);
 	if (IS_ERR_OR_NULL(chip->tcpci)) {
 		dev_err(&client->dev, "TCPCI port registration failed");
 		ret = PTR_ERR(chip->tcpci);
