@@ -14,6 +14,8 @@
 			google_cpm: google,cpm {
 				status = "okay";
 				compatible = "google,cpm";
+				#cooling-cells = <2>;
+
 				google,chg-power-supplies = "main-charger",
 							    "pca9468-mains";
 
@@ -21,12 +23,13 @@
 				google,dc-en = <&s2mpg10_gpio 1 0>;
 				/* DC enabled by default */
 				google,dc-en-value = <1>;
-				google,dc_limit-demand = <5600000>;
+				google,dc_limit-demand = <560000>;
 				google,dc_limit-vbatt = <4350000>;
 				google,dc_limit-vbatt_min = <3400000>;
 
 				google,tcpm-power-supply = <&max77759tcpc>;
 				google,wlc_dc-power-supply = "wireless";
+				google,dc_limit-cc_min_wlc = <2750000>;
 				google,pps-awake;
 			};
 
@@ -38,10 +41,11 @@
 				google,chg-power-supply = "gcpm";
 				google,bat-power-supply = "battery";
 				google,usb-power-supply = "usb";
+				google,tcpm-power-supply = <&max77759tcpc>;
 
-				google,fv-max-uv = <4450000>;
+				google,fv-max-uv = <4480000>;
 
-				google,wlc-thermal-mitigation = <1100000 500000 250000 100000>;
+				google,wlc-thermal-mitigation = <1100000 500000 250000 110000>;
 				google,therm-wlc-overrides-fcc;
 				google,wlc-thermal-dc-fan-alarm = <2>;
 
@@ -59,6 +63,8 @@
 				/* Enable TEMP-DEFEND */
 				google,bd-temp-enable;
 				google,bd-temp-dry-run;
+
+				google,chg-termination-5v;
 			};
 
 			google_bms {
@@ -70,6 +76,10 @@
 			};
 
 			google_wlc_fcc_charger: google,wlc_fcc_charger {
+				#cooling-cells = <2>;
+			};
+
+			google_mdis_charger: google,mdis_charger {
 				#cooling-cells = <2>;
 			};
 		};
@@ -109,7 +119,7 @@
 
 		pca9468,float-voltage = <4300000>; /* 4.3V */
 
-		pca9468,input-itopoff = <600000>; /* 600mA */
+		pca9468,input-itopoff = <500000>; /* 500mA */
 		pca9468,sense-resistance = <0>; /* 5mOhm */
 		pca9468,switching-frequency = <3>; /* 980KHz */
 
