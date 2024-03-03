@@ -17,10 +17,11 @@
 				status = "okay";
 				compatible = "google,battery";
 				google,fg-psy-name = "maxfg";
-				/* simulate 1.2C charge: 4087 x 1.2 ~ 4905 (R4) */
-				google,chg-battery-capacity = <4087>;
+				
 				/* charge table */
-				google,chg-temp-limits = <0 100 200 420 460 480 550>;
+				google,chg-temp-limits = <0 100 200 380 400 430 450 550>;
+				/* 						   <2A 3.5A 6A 5A 4A 2A shutdown> */
+
 				google,chg-cv-limits = <4200000 4300000 4350000 4480000>;
 				google,ttf-temp-idx= <2>;
 				google,ttf-adapter = <3000>;
